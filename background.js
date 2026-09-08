@@ -1,4 +1,4 @@
-import { fetchFPTPlaceTab, setMessage } from './utils.js';
+import { fetchFPTPlaceTab, setMessage, updateCollected } from './utils.js';
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'autoClick') {
@@ -14,18 +14,23 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (!tab) return;
 
   try {
-    await chrome.tabs.sendMessage(tab.id, {
+    const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'clickClaimButton',
     });
+    if (response?.success === true) {
+      void updateCollected();
+    }
+    if (response?.message) {
+      await setMessage(response.message);
+    }
   } catch (err) {
     console.error('Failed to send message to tab:', err);
+    await setMessage('Could not send message to page, consider reloading page.');
   }
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === 'setMessage') {
-    void setMessage(message.message);
-  } else if (message.action === 'resetAlarm') {
+  if (message.action === 'resetAlarm') {
     void chrome.alarms.create('autoClick', {
       periodInMinutes: 45,
     });

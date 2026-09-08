@@ -1,17 +1,27 @@
-import { fetchFPTPlaceTab, getCurrentTime, isEnabled, setMessage, toggleExtension } from '../utils.js';
+import {
+  fetchFPTPlaceTab,
+  getCurrentTime,
+  isEnabled,
+  setMessage,
+  toggleExtension,
+  updateCollected,
+} from '../utils.js';
 
 void fetchFPTPlaceTab();
 
-// time
+// current time
 const currentTime = document.querySelector('#current-time');
 currentTime.innerText = getCurrentTime().toString();
 setInterval(() => {
   currentTime.innerText = getCurrentTime().toString();
 }, 1000);
 
-// time
+// status
 const statusLabel = document.querySelector('#status');
 statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'End';
+
+// collected
+void updateCollected();
 
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
@@ -55,10 +65,14 @@ forceClaimButton.addEventListener('click', async () => {
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'forceClaim',
     });
+    if (response?.success === true) {
+      void updateCollected();
+    }
     if (response?.message) {
       await setMessage(response.message);
     }
   } catch (error) {
+    console.error('Failed to send message to tab:', error);
     await setMessage('Could not send message to page, consider reloading page.');
   }
 });

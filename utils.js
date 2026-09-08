@@ -42,6 +42,28 @@ export async function setMessage(str) {
   }
 }
 
+export function setCollected(str) {
+  if (typeof document !== 'undefined') {
+    const collectedCountEl = document.querySelector('#collected-count');
+    if (collectedCountEl) {
+      collectedCountEl.innerText = str;
+    }
+  }
+}
+
+export async function updateCollected() {
+  const tab = await fetchFPTPlaceTab();
+  if (!tab) return;
+
+  const response = await chrome.tabs.sendMessage(tab.id, {
+    action: 'getCollected',
+    started: getCurrentTime().started(),
+  });
+  if (response?.message) {
+    setCollected(response.message);
+  }
+}
+
 export function setNextTime(time) {
   if (typeof document !== 'undefined') {
     const nextTimeEl = document.querySelector('#next-time');
