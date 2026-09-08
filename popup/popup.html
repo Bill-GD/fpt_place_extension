@@ -14,37 +14,39 @@
         text-align: center;
       }
 
-      h2 {
-        margin: 0 0 12px;
-        font-size: 18px;
+      .label-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 10px;
       }
 
-      .counter {
-        font-size: 48px;
-        font-weight: bold;
-        margin: 8px 0 16px;
-      }
-
-      .times {
+      .label {
         display: flex;
         justify-content: space-around;
         margin-bottom: 16px;
       }
 
-      .times div {
+      .label div {
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
-      .times span {
+      .label span {
         font-size: 12px;
         color: #999;
       }
 
-      .times strong {
+      .label strong {
         font-size: 16px;
         color: #f0f0f0;
+      }
+
+      .label #message {
+        font-size: 14px;
+        color: #f0f0f0;
+        word-wrap: normal;
       }
 
       .buttons {
@@ -83,13 +85,25 @@
   </head>
 
   <body>
-    <div class="label">
-      <h2>Counter</h2>
-      <div class="counter">0</div>
+    <div class="label-grid">
+      <div class="label">
+        <div>
+          <span>Current</span>
+          <strong id="current-time"></strong>
+        </div>
+      </div>
+      <div class="label">
+        <div>
+          <span>Next</span>
+          <strong id="next-time">16:00:00</strong>
+        </div>
+      </div>
     </div>
-    <div class="times">
-      <div><span>Current</span> <strong id="current-time">12:34:56</strong></div>
-      <div><span>Next</span> <strong id="next-time">13:19:56</strong></div>
+    <div class="label">
+      <div>
+        <span>Next</span>
+        <span id="message">No message.</span>
+      </div>
     </div>
     <div class="buttons">
       <button id="toggle-button">Toggle</button>

@@ -1,5 +1,6 @@
-import { clickClaimButton } from '../scripts/runner.js';
-import { getCurrentTime } from '../time.js';
+import { fetchFPTPlaceTab, getCurrentTime, isEnabled, toggleExtension } from '../utils.js';
+
+const tab = await fetchFPTPlaceTab();
 
 // time
 const currentTime = document.querySelector('#current-time');
@@ -11,22 +12,20 @@ setInterval(() => {
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
 
-const { enabled = false } = await chrome.storage.local.get('enabled');
-toggleButton.innerHTML = `Toggle: ${enabled ? '<span class="toggle on">ON</span>' : '<span class="toggle off">OFF</span>'}`;
+toggleButton.innerHTML = `Toggle: ${(await isEnabled())
+  ? '<span class="toggle on">ON</span>'
+  : '<span class="toggle off">OFF</span>'}`;
 
 toggleButton.addEventListener('click', async () => {
-  const { enabled = false } = await chrome.storage.local.get('enabled');
-  await chrome.storage.local.set({
-    enabled: !enabled,
-  });
-  const newState = !enabled;
-  toggleButton.innerHTML = `Toggle: ${newState ? '<span class="toggle on">ON</span>' : '<span class="toggle off">OFF</span>'}`;
-
-  console.log('Extension enabled:', newState);
+  void toggleExtension();
 });
 
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
-forceClaimButton.addEventListener('click', () => {
-  clickClaimButton();
+
+forceClaimButton.addEventListener('click', async () => {
+  if (!(await isEnabled()) || !tab) return;
+  void chrome.tabs.sendMessage(tab.id, {
+    action: 'clickClaimButton',
+  });
 });
