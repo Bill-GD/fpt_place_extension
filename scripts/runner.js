@@ -5,7 +5,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'getCollected') {
     if (message?.started === true) {
-
+      const button = [...document.querySelectorAll('button')]
+        .find((el) => {
+          return el.innerText.trim().startsWith('Get Number');
+        });
+      sendResponse({ success: true, message: button.innerText.trim().split('(')[1].slice(0, -1) });
     } else if (message?.started === false) {
       const button = [...document.querySelectorAll('button')]
         .find((el) => {

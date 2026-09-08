@@ -1,8 +1,11 @@
 import {
+  calcNextTime,
+  DEFAULT_TIMESTAMPS,
   fetchFPTPlaceTab,
   getCurrentTime,
   isEnabled,
   setMessage,
+  setNextTime,
   toggleExtension,
   updateCollected,
 } from '../utils.js';
@@ -18,10 +21,14 @@ setInterval(() => {
 
 // status
 const statusLabel = document.querySelector('#status');
-statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'End';
+statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'Ended';
 
 // collected
 void updateCollected();
+
+// next timestamp
+const { nextTime: nextTimeStr = DEFAULT_TIMESTAMPS[0] } = await chrome.storage.local.get('nextTime');
+setNextTime(nextTimeStr, false);
 
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
@@ -58,6 +65,11 @@ forceClaimButton.addEventListener('click', async () => {
     return;
   }
 
+  if (!getCurrentTime().started()) {
+    await setMessage('Please wait until tomorrow.');
+    return;
+  }
+
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
@@ -67,6 +79,7 @@ forceClaimButton.addEventListener('click', async () => {
     });
     if (response?.success === true) {
       void updateCollected();
+      calcNextTime();
     }
     if (response?.message) {
       await setMessage(response.message);

@@ -23,6 +23,19 @@ export function getCurrentTime() {
     hour,
     minute,
     second,
+    add(hour = 0, minute = 0, second = 0) {
+      this.second = this.second + second;
+      if (this.second > 60) {
+        this.second %= 60;
+        this.minute++;
+      }
+      this.minute = this.minute + minute;
+      if (this.minute > 60) {
+        this.minute %= 60;
+        this.hour++;
+      }
+      this.hour = (this.hour + hour) % 24;
+    },
     started() {
       return (hour >= 8 && minute >= 30) && hour <= 16;
     },
@@ -64,7 +77,10 @@ export async function updateCollected() {
   }
 }
 
-export function setNextTime(time) {
+export function setNextTime(time, save = true) {
+  if (save) {
+    void chrome.storage.local.set({ nextTime: time });
+  }
   if (typeof document !== 'undefined') {
     const nextTimeEl = document.querySelector('#next-time');
     if (nextTimeEl) {
@@ -75,6 +91,13 @@ export function setNextTime(time) {
 
 export function calcNextTime() {
   const currentTime = getCurrentTime();
+  if (!currentTime.started()) {
+    setNextTime(DEFAULT_TIMESTAMPS[0]);
+    return;
+  }
+
+  currentTime.add(0, 45);
+  setNextTime(currentTime.toString());
 }
 
 export async function isEnabled() {

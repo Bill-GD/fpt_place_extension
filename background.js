@@ -1,4 +1,4 @@
-import { fetchFPTPlaceTab, setMessage, updateCollected } from './utils.js';
+import { calcNextTime, fetchFPTPlaceTab, setMessage, updateCollected } from './utils.js';
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'autoClick') {
@@ -19,6 +19,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     });
     if (response?.success === true) {
       void updateCollected();
+      calcNextTime();
     }
     if (response?.message) {
       await setMessage(response.message);
