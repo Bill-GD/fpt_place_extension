@@ -45,8 +45,10 @@ export function getCurrentTime() {
   };
 }
 
-export async function setMessage(str) {
-  await chrome.storage.local.set({ message: str });
+export async function setMessage(str, save = true) {
+  if (save) {
+    await chrome.storage.local.set({ message: str });
+  }
   if (typeof document !== 'undefined') {
     const messageEl = document.querySelector('#message');
     if (messageEl) {
@@ -68,12 +70,17 @@ export async function updateCollected() {
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
-  const response = await chrome.tabs.sendMessage(tab.id, {
-    action: 'getCollected',
-    started: getCurrentTime().started(),
-  });
-  if (response?.message) {
-    setCollected(response.message);
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'getCollected',
+      started: getCurrentTime().started(),
+    });
+    if (response?.message) {
+      setCollected(response.message);
+    }
+  } catch (error) {
+    console.error('Failed to send message to tab:', error);
+    await setMessage('Failed to fetch collected count, consider reloading page.', false);
   }
 }
 

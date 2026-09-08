@@ -26,7 +26,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   } catch (err) {
     console.error('Failed to send message to tab:', err);
-    await setMessage('Could not send message to page, consider reloading page.');
+    await setMessage('Could not claim, consider reloading page.', false);
   }
 });
 

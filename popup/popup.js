@@ -86,6 +86,6 @@ forceClaimButton.addEventListener('click', async () => {
     }
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Could not send message to page, consider reloading page.');
+    await setMessage('Could not force claim, consider reloading page.', false);
   }
 });
