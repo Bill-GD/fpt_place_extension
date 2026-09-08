@@ -8,7 +8,7 @@ import {
   setNextTime,
   toggleExtension,
   updateCollected,
-} from '../utils.js';
+} from '../scripts/utils.js';
 
 void fetchFPTPlaceTab();
 
