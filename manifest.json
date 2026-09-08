@@ -1,6 +1,6 @@
 {
-  "name": "MyFPT Next Jackpot Extension",
-  "description": "Extension to automate MyFPT Next Jackpot number acquisition",
+  "name": "FPT Place Jackpot Helper",
+  "description": "Extension to automate FPT Place Jackpot number acquisition",
   "version": "1.0",
   "manifest_version": 3,
   "action": {

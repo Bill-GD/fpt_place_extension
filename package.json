@@ -1,5 +1,5 @@
 {
-  "name": "myfpt_next_extension",
+  "name": "fpt_place_extension",
   "version": "1.0.0",
   "description": "",
   "main": "popup/popup.js",
