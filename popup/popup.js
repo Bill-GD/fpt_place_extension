@@ -1,13 +1,17 @@
-import { fetchFPTPlaceTab, getCurrentTime, isEnabled, toggleExtension } from '../utils.js';
+import { fetchFPTPlaceTab, getCurrentTime, isEnabled, setMessage, toggleExtension } from '../utils.js';
 
-const tab = await fetchFPTPlaceTab();
+void fetchFPTPlaceTab();
 
 // time
 const currentTime = document.querySelector('#current-time');
-currentTime.innerText = getCurrentTime();
+currentTime.innerText = getCurrentTime().toString();
 setInterval(() => {
-  currentTime.innerText = getCurrentTime();
+  currentTime.innerText = getCurrentTime().toString();
 }, 1000);
+
+// time
+const statusLabel = document.querySelector('#status');
+statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'End';
 
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
@@ -20,12 +24,41 @@ toggleButton.addEventListener('click', async () => {
   void toggleExtension();
 });
 
+// restore saved message
+const { message: savedMessage } = await chrome.storage.local.get('message');
+if (savedMessage) {
+  const messageEl = document.querySelector('#message');
+  if (messageEl) messageEl.innerText = savedMessage;
+}
+
+// listen for storage changes (e.g. from background or content script)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.message) {
+    const messageEl = document.querySelector('#message');
+    if (messageEl) messageEl.innerText = changes.message.newValue;
+  }
+});
+
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
 
 forceClaimButton.addEventListener('click', async () => {
-  if (!(await isEnabled()) || !tab) return;
-  void chrome.tabs.sendMessage(tab.id, {
-    action: 'clickClaimButton',
-  });
+  if (!(await isEnabled())) {
+    await setMessage('Extension is disabled. Toggle ON to claim.');
+    return;
+  }
+
+  const tab = await fetchFPTPlaceTab();
+  if (!tab) return;
+
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'forceClaim',
+    });
+    if (response?.message) {
+      await setMessage(response.message);
+    }
+  } catch (error) {
+    await setMessage('Could not send message to page, consider reloading page.');
+  }
 });

@@ -1,18 +1,25 @@
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.action !== 'clickClaimButton') {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action !== 'clickClaimButton' && message.action !== 'forceClaim') {
     return;
   }
 
   const button = [...document.querySelectorAll('button')]
-    .find(el => {
-      console.log(el.innerText);
-      return el.innerText.trim() === 'Get Number Now';
+    .find((el) => {
+      return el.innerText.trim().startsWith('Get Number Now');
     });
 
   if (button) {
-    // button.click();
-    console.log('Button clicked');
+    button.click();
+    console.log('Claimed number.');
+
+    void chrome.runtime.sendMessage({
+      action: 'resetAlarm',
+    });
+
+    sendResponse({ success: true, message: 'Claimed number' });
   } else {
-    console.log('Button not found');
+    console.log('Button not found.');
+
+    sendResponse({ success: false, message: 'Button not found' });
   }
 });

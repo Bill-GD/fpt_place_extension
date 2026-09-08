@@ -7,14 +7,21 @@
     "default_popup": "popup/popup.html",
     "default_icon": "images/logo.png"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "alarms"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["https://place.fpt.com/"],
+      "matches": ["https://place.fpt.com/*"],
       "js": ["scripts/runner.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["utils.js"],
+      "matches": ["https://place.fpt.com/*"]
     }
   ]
 }

@@ -18,11 +18,41 @@ function padStart(value) {
 
 export function getCurrentTime() {
   const date = new Date();
-  return `${padStart(date.getHours())}:${padStart(date.getMinutes())}:${padStart(date.getSeconds())}`;
+  const hour = date.getHours(), minute = date.getMinutes(), second = date.getSeconds();
+  return {
+    hour,
+    minute,
+    second,
+    started() {
+      return (hour >= 8 && minute >= 30) && hour <= 16;
+    },
+    toString() {
+      return `${padStart(hour)}:${padStart(minute)}:${padStart(second)}`;
+    },
+  };
 }
 
-export function setMessage(str) {
-  document.querySelector('#message').innerText = str;
+export async function setMessage(str) {
+  await chrome.storage.local.set({ message: str });
+  if (typeof document !== 'undefined') {
+    const messageEl = document.querySelector('#message');
+    if (messageEl) {
+      messageEl.innerText = str;
+    }
+  }
+}
+
+export function setNextTime(time) {
+  if (typeof document !== 'undefined') {
+    const nextTimeEl = document.querySelector('#next-time');
+    if (nextTimeEl) {
+      nextTimeEl.innerText = time;
+    }
+  }
+}
+
+export function calcNextTime() {
+  const currentTime = getCurrentTime();
 }
 
 export async function isEnabled() {
@@ -31,33 +61,32 @@ export async function isEnabled() {
 }
 
 export async function toggleExtension() {
-  const toggleButton = document.querySelector('#toggle-button');
   const { enabled = false } = await chrome.storage.local.get('enabled');
-  await chrome.storage.local.set({
-    enabled: !enabled,
-  });
   const newState = !enabled;
-  toggleButton.innerHTML = `Toggle: ${newState
-    ? '<span class="toggle on">ON</span>'
-    : '<span class="toggle off">OFF</span>'}`;
+  await chrome.storage.local.set({ enabled: newState });
+
+  if (typeof document !== 'undefined') {
+    const toggleButton = document.querySelector('#toggle-button');
+    if (toggleButton) {
+      toggleButton.innerHTML = `Toggle: ${newState
+        ? '<span class="toggle on">ON</span>'
+        : '<span class="toggle off">OFF</span>'}`;
+    }
+  }
 
   console.log('Extension enabled:', newState);
+  return newState;
 }
 
 export async function fetchFPTPlaceTab() {
   const tabs = await chrome.tabs.query({
-    url: 'https://place.fpt.com/',
+    url: 'https://place.fpt.com/*',
   });
 
   if (tabs.length <= 0) {
-    void toggleExtension();
-    setMessage('Please open "place.fpt.com" (the home page)');
+    await setMessage('Please open "place.fpt.com" (the home page)');
     return null;
   }
-
-  await chrome.storage.local.set({
-    tab: tabs[0],
-  });
 
   return tabs[0];
 }
