@@ -42,6 +42,9 @@ export function getCurrentTime() {
     isBeforeStart() {
       return this.hour < 8 || (this.hour === 8 && this.minute < 30);
     },
+    isEnded() {
+      return this.hour >= 16;
+    },
     toMinutes() {
       return this.minute + this.hour * 60 + (this.second > 0 ? 1 : 0);
     },

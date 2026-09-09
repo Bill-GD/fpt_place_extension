@@ -78,15 +78,17 @@ async function forceClaim() {
 
 // auto start on open
 (async () => {
-  if (!getCurrentTime().isOngoing() || !(await canClick())) {
-    if (!(await hasAlarm())) {
-      setTimeout(() => setAlarm(false), 1000);
-    }
+  if (getCurrentTime().isOngoing() && await canClick()) {
+    await forceClaim();
+    await setMessage('Auto claimed (may or may not actually claimed)');
     return;
   }
 
-  await forceClaim();
-  await setMessage('Auto claimed (may or may not actually claimed)');
+  if (getCurrentTime().isEnded()) {
+    await chrome.alarms.clear('autoClick');
+    return;
+  }
+  if (!(await hasAlarm())) setTimeout(() => void setAlarm(false), 1000);
 })();
 
 // force claim
@@ -128,4 +130,11 @@ forceSetAlarmButton.addEventListener('click', async () => {
     return;
   }
   void setAlarm();
+});
+
+// remove alarm
+const removeSetAlarmButton = document.querySelector('#remove-alarm-button');
+removeSetAlarmButton.addEventListener('click', async () => {
+  await chrome.alarms.clear('autoClick');
+  void setMessage('Cleared alarm');
 });
