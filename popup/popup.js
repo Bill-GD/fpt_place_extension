@@ -4,11 +4,9 @@ import {
   fetchFPTPlaceTab,
   fetchTimeRemaining,
   getCurrentTime,
-  isEnabled,
   setAlarm,
   setMessage,
   setNextTime,
-  toggleExtension,
   updateCollected,
 } from '../scripts/utils.js';
 
@@ -61,25 +59,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
 })();
 
 // ===== button event listeners =====
-// toggle
-const toggleButton = document.querySelector('#toggle-button');
-
-toggleButton.innerHTML = `Toggle: ${(await isEnabled())
-  ? '<span class="toggle on">ON</span>'
-  : '<span class="toggle off">OFF</span>'}`;
-
-toggleButton.addEventListener('click', async () => {
-  void toggleExtension();
-});
-
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
 forceClaimButton.addEventListener('click', async () => {
-  if (!(await isEnabled())) {
-    await setMessage('Extension is disabled. Toggle ON to claim.');
-    return;
-  }
-
   if (!getCurrentTime().started()) {
     await setMessage('Please wait until tomorrow.');
     return;

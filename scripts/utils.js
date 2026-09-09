@@ -87,11 +87,6 @@ export function calcNextTime() {
   setNextTime(currentTime.toString());
 }
 
-export async function isEnabled() {
-  const { enabled = false } = await chrome.storage.local.get('enabled');
-  return enabled;
-}
-
 export async function setMessage(str) {
   if (typeof document === 'undefined') return;
   const messageEl = document.querySelector('#message');
@@ -149,24 +144,6 @@ export function setAlarm(minute = 45, log = true) {
     persistAcrossSessions: true,
   });
   if (log) console.log(`Reset ${minute} min periodic autoClick alarm`);
-}
-
-export async function toggleExtension() {
-  const { enabled = false } = await chrome.storage.local.get('enabled');
-  const newState = !enabled;
-  await chrome.storage.local.set({ enabled: newState });
-
-  if (typeof document !== 'undefined') {
-    const toggleButton = document.querySelector('#toggle-button');
-    if (toggleButton) {
-      toggleButton.innerHTML = `Toggle: ${newState
-        ? '<span class="toggle on">ON</span>'
-        : '<span class="toggle off">OFF</span>'}`;
-    }
-  }
-
-  console.log('Extension enabled:', newState);
-  return newState;
 }
 
 export async function fetchFPTPlaceTab() {
