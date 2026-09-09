@@ -136,11 +136,7 @@ export async function canClick() {
   if (!tab) return;
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'getTimeRemaining',
-      started: getCurrentTime().started(),
-    });
-
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'canClick' });
     return response?.canClick ?? false;
   } catch (error) {
     console.error('Failed to send message to tab:', error);
