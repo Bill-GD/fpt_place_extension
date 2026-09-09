@@ -53,10 +53,12 @@ export async function fetchTimeRemaining() {
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTimeRemaining' });
-    if (response?.message) {
+    if (response?.success === true && response?.message) {
       await chrome.storage.local.set({ timeToNext: response.message });
+      return String(response.message);
     }
-    return String(response.message);
+    await setMessage(response?.message ?? 'Failed to fetch time until next claim');
+    return '';
   } catch (error) {
     console.error('Failed to send message to tab:', error);
     await setMessage('Failed to fetch time until next claim, consider reloading page.');
@@ -84,7 +86,7 @@ export function calcNextTime() {
   }
 
   currentTime.add(0, 45);
-  setNextTime(currentTime.toString());
+  setNextTime(currentTime.started() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
 }
 
 export async function setMessage(str) {
@@ -138,12 +140,26 @@ export async function canClick() {
   }
 }
 
-export function setAlarm(minute = 45, log = true) {
+export async function hasAlarm() {
+  const alarm = await chrome.alarms.get('autoClick');
+  return !!alarm;
+}
+
+export async function setAlarm(log = true) {
+  const timeToNext = await fetchTimeRemaining();
+  const [minStr, secStr] = timeToNext.split(':');
+  let minute = Number(minStr) || 1;
+  if (Number(secStr) > 0) minute++;
+
   void chrome.alarms.create('autoClick', {
     periodInMinutes: minute,
     persistAcrossSessions: true,
   });
-  if (log) console.log(`Reset ${minute} min periodic autoClick alarm`);
+
+  if (log) {
+    console.log(`Set ${minute} min periodic autoClick alarm`);
+    void setMessage(`Set alarm: ${minute}min.`);
+  }
 }
 
 export async function fetchFPTPlaceTab() {

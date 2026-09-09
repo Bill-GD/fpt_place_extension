@@ -57,7 +57,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       const [minStr, secStr] = response.remainingTime.split(':');
       const min = Number(minStr) || 0, sec = Number(secStr) || 0;
       let delayInMinutes = Math.max(min + (sec > 0 ? 1 : 0), 1);
-      setAlarm(delayInMinutes, true);
+      await setAlarm();
       console.log(`Button still in countdown. Rescheduled alarm for ${delayInMinutes} min.`);
     }
     if (response?.message) {
@@ -84,11 +84,10 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-chrome.storage.onChanged.addListener((changes, area) => {
+chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area === 'local' && changes.enabled) {
     if (changes.enabled.newValue) {
-      setAlarm(45, false);
-      console.log('Extension enabled: created 45 min periodic autoClick alarm');
+      await setAlarm(false);
     } else {
       void chrome.alarms.clear('autoClick');
       console.log('Extension disabled: cleared autoClick alarm');

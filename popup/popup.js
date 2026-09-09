@@ -4,6 +4,7 @@ import {
   fetchFPTPlaceTab,
   fetchTimeRemaining,
   getCurrentTime,
+  hasAlarm,
   setAlarm,
   setMessage,
   setNextTime,
@@ -29,10 +30,15 @@ void updateCollected();
 // next timestamp
 (async () => {
   const timeToNext = await fetchTimeRemaining();
+  if (timeToNext.length <= 0) {
+    setNextTime('N/A');
+    return;
+  }
+
   const [minStr, secStr] = timeToNext.split(':');
-  const baseTime = getCurrentTime();
-  baseTime.add(0, Number(minStr), Number(secStr));
-  setNextTime(baseTime.toString());
+  const time = getCurrentTime();
+  time.add(0, Number(minStr) || 0, Number(secStr) || 0);
+  setNextTime(time.toString());
 })();
 
 // listen for storage changes (e.g. from background or content script)
@@ -43,36 +49,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// auto set alarm (especially when reloaded)
-(async () => {
-  const alarm = await chrome.alarms.get('autoClick');
-  if (alarm) return;
-
-  const timeToNext = await fetchTimeRemaining();
-  const [minStr, secStr] = timeToNext.split(':');
-  let minute = Number(minStr);
-  if (Number(secStr) > 0) minute++;
-  setTimeout(() => {
-    setAlarm(minute);
-    void setMessage(`Set alarm: ${minute}min.`);
-  }, 1000);
-})();
-
 // ===== button event listeners =====
-// force claim
-const forceClaimButton = document.querySelector('#force-claim-button');
-forceClaimButton.addEventListener('click', async () => {
-  if (!getCurrentTime().started()) {
-    await setMessage('Please wait until tomorrow.');
-    return;
-  }
-
-  if (!(await canClick())) {
-    const timeToNext = await fetchTimeRemaining();
-    await setMessage(`Please wait until next claim (in ${timeToNext}).`);
-    return;
-  }
-
+async function forceClaim() {
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
@@ -89,6 +67,36 @@ forceClaimButton.addEventListener('click', async () => {
     console.error('Failed to send message to tab:', error);
     await setMessage('Could not force claim, consider reloading page.');
   }
+}
+
+// auto start on open
+(async () => {
+  if (!getCurrentTime().started() || !(await canClick())) {
+    if (!(await hasAlarm())) {
+      setTimeout(() => setAlarm(false), 1000);
+    }
+    return;
+  }
+
+  await forceClaim();
+  await setMessage('Auto claimed (may or may not actually claimed)');
+})();
+
+// force claim
+const forceClaimButton = document.querySelector('#force-claim-button');
+forceClaimButton.addEventListener('click', async () => {
+  if (!getCurrentTime().started()) {
+    await setMessage('Please wait until tomorrow.');
+    return;
+  }
+
+  if (!(await canClick())) {
+    const timeToNext = await fetchTimeRemaining();
+    await setMessage(`Please wait until next claim (in ${timeToNext}).`);
+    return;
+  }
+
+  void forceClaim();
 });
 
 // check alarm
@@ -96,9 +104,11 @@ const checkAlarmButton = document.querySelector('#check-alarm-button');
 checkAlarmButton.addEventListener('click', async () => {
   const alarm = await chrome.alarms.get('autoClick');
   if (!alarm) {
-    void setMessage('No alarm set', false);
+    void setMessage('No alarm set');
   } else {
-    void setMessage(`Alarm set at: ${new Date(alarm.scheduledTime).toLocaleTimeString()}`, false);
+    void setMessage(
+      `Alarm set at: ${new Date(alarm.scheduledTime).toLocaleTimeString(undefined, { hour12: false })}`,
+    );
   }
 });
 
@@ -110,10 +120,5 @@ forceSetAlarmButton.addEventListener('click', async () => {
     await setMessage('Could not force set alarm, consider reloading page.');
     return;
   }
-
-  const [min, sec] = timeToNext.split(':');
-  let minute = Number(min);
-  if (Number(sec) > 0) minute++;
-  setAlarm(minute);
-  await setMessage(`Set alarm: ${minute}min.`);
+  void setAlarm();
 });
