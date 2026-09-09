@@ -74,7 +74,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   switch (message.action) {
     case 'getCollected': {
-      if (message?.started === true) {
+      if (message?.isOngoing === true) {
         const text = [...document.querySelectorAll('p')].find((el) => {
           return el.innerText.trim().endsWith('number(s) today');
         });
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
         sendResponse({ success: true, collected: text.innerText.trim().split(' ')[1] });
-      } else if (message?.started === false) {
+      } else if (message?.isOngoing === false) {
         const button = [...document.querySelectorAll('button')].find((el) => {
           return el.innerText.trim().endsWith('number(s) today');
         });

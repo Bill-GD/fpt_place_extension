@@ -22,7 +22,7 @@ setInterval(() => {
 
 // status
 const statusLabel = document.querySelector('#status');
-statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'Ended';
+statusLabel.innerText = getCurrentTime().isOngoing() ? 'Ongoing' : 'Ended';
 
 // collected
 void updateCollected();
@@ -71,7 +71,7 @@ async function forceClaim() {
 
 // auto start on open
 (async () => {
-  if (!getCurrentTime().started() || !(await canClick())) {
+  if (!getCurrentTime().isOngoing() || !(await canClick())) {
     if (!(await hasAlarm())) {
       setTimeout(() => setAlarm(false), 1000);
     }
@@ -85,7 +85,7 @@ async function forceClaim() {
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
 forceClaimButton.addEventListener('click', async () => {
-  if (!getCurrentTime().started()) {
+  if (!getCurrentTime().isOngoing()) {
     await setMessage('Please wait until tomorrow.');
     return;
   }

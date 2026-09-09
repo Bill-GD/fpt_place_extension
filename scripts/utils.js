@@ -36,7 +36,7 @@ export function getCurrentTime() {
       }
       this.hour = (this.hour + hour) % 24;
     },
-    started() {
+    isOngoing() {
       return ((hour >= 8 && minute >= 30) || hour >= 9) && hour <= 16;
     },
     toString() {
@@ -46,7 +46,7 @@ export function getCurrentTime() {
 }
 
 export async function fetchTimeRemaining() {
-  if (!getCurrentTime().started()) return '';
+  if (!getCurrentTime().isOngoing()) return '';
 
   const tab = await fetchFPTPlaceTab();
   if (!tab) return '';
@@ -80,13 +80,13 @@ export function setNextTime(time, save = true) {
 
 export function calcNextTime() {
   const currentTime = getCurrentTime();
-  if (!currentTime.started()) {
+  if (!currentTime.isOngoing()) {
     setNextTime(DEFAULT_TIMESTAMPS[0]);
     return;
   }
 
   currentTime.add(0, 45);
-  setNextTime(currentTime.started() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
+  setNextTime(currentTime.isOngoing() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
 }
 
 export async function setMessage(str) {
@@ -114,7 +114,7 @@ export async function updateCollected() {
   try {
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'getCollected',
-      started: getCurrentTime().started(),
+      isOngoing: getCurrentTime().isOngoing(),
     });
     if (response?.collected) {
       setCollected(response.collected);
@@ -126,7 +126,7 @@ export async function updateCollected() {
 }
 
 export async function canClick() {
-  if (!getCurrentTime().started()) return false;
+  if (!getCurrentTime().isOngoing()) return false;
 
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
