@@ -46,13 +46,6 @@ toggleButton.addEventListener('click', async () => {
   void toggleExtension();
 });
 
-// restore saved message
-const { message: savedMessage } = await chrome.storage.local.get('message');
-if (savedMessage) {
-  const messageEl = document.querySelector('#message');
-  if (messageEl) messageEl.innerText = savedMessage;
-}
-
 // listen for storage changes (e.g. from background or content script)
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.message) {
@@ -66,18 +59,18 @@ const forceClaimButton = document.querySelector('#force-claim-button');
 
 forceClaimButton.addEventListener('click', async () => {
   if (!(await isEnabled())) {
-    await setMessage('Extension is disabled. Toggle ON to claim.', false);
+    await setMessage('Extension is disabled. Toggle ON to claim.');
     return;
   }
 
   if (!getCurrentTime().started()) {
-    await setMessage('Please wait until tomorrow.', false);
+    await setMessage('Please wait until tomorrow.');
     return;
   }
 
   if (!(await canClick())) {
     const timeToNext = await fetchTimeRemaining();
-    await setMessage(`Please wait until next claim (in ${timeToNext}).`, false);
+    await setMessage(`Please wait until next claim (in ${timeToNext}).`);
     return;
   }
 
@@ -97,7 +90,7 @@ forceClaimButton.addEventListener('click', async () => {
     }
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Could not force claim, consider reloading page.', false);
+    await setMessage('Could not force claim, consider reloading page.');
   }
 });
 
@@ -117,7 +110,7 @@ const forceSetAlarmButton = document.querySelector('#set-alarm-button');
 forceSetAlarmButton.addEventListener('click', async () => {
   const timeToNext = await fetchTimeRemaining();
   if (timeToNext.length <= 0) {
-    await setMessage('Could not force set alarm, consider reloading page.', false);
+    await setMessage('Could not force set alarm, consider reloading page.');
     return;
   }
 
@@ -125,5 +118,5 @@ forceSetAlarmButton.addEventListener('click', async () => {
   let minute = Number(min);
   if (Number(sec) > 0) minute++;
   setAlarm(minute);
-  await setMessage(`Set alarm: ${minute}min.`, false);
+  await setMessage(`Set alarm: ${minute}min.`);
 });

@@ -23,13 +23,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'canClick') {
-    if (message?.started === true) {
-      const button = [...document.querySelectorAll('button')]
-        .find((el) => {
-          return el.innerText.trim().startsWith('Get Number');
-        });
-      sendResponse({ success: true, canClick: !button.innerText.includes('(') });
-    }
+    const button = [...document.querySelectorAll('button')]
+      .find((el) => {
+        return el.innerText.trim().startsWith('Get Number');
+      });
+    sendResponse({ success: true, canClick: !button.innerText.includes('(') });
     return;
   }
 
@@ -58,7 +56,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void chrome.runtime.sendMessage({ action: 'resetAlarm' });
     sendResponse({
       success: true,
-      message: `Claimed number ${new Date().toLocaleTimeString(undefined, { hour12: false })}`,
+      message: `Claimed number at ${new Date().toLocaleTimeString(undefined, { hour12: false })}`,
     });
   } else {
     console.log('Button not found.');

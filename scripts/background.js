@@ -18,7 +18,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       action: 'clickClaimButton',
     });
     if (response?.success === true) {
-      void updateCollected();
+      await updateCollected();
       calcNextTime();
     }
     if (response?.message) {
@@ -26,13 +26,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   } catch (err) {
     console.error('Failed to send message to tab:', err);
-    await setMessage('Could not claim, consider reloading page.', false);
+    await setMessage('Could not claim, consider reloading page.');
   }
 });
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'resetAlarm') {
-    setAlarm();
+    setTimeout(setAlarm, 1000);
   }
 });
 

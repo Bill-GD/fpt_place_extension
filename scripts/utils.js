@@ -45,16 +45,14 @@ export function getCurrentTime() {
   };
 }
 
-export async function setMessage(str, save = true) {
-  if (save) {
-    await chrome.storage.local.set({ message: str });
+export async function setMessage(str) {
+  if (typeof document === 'undefined') return;
+
+  const messageEl = document.querySelector('#message');
+  if (messageEl) {
+    messageEl.innerText = str;
   }
-  if (typeof document !== 'undefined') {
-    const messageEl = document.querySelector('#message');
-    if (messageEl) {
-      messageEl.innerText = str;
-    }
-  }
+  console.log(str);
 }
 
 export function setCollected(str) {
@@ -80,7 +78,7 @@ export async function updateCollected() {
     }
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Failed to fetch collected count, consider reloading page.', false);
+    await setMessage('Failed to fetch collected count, consider reloading page.');
   }
 }
 
@@ -98,7 +96,7 @@ export async function fetchTimeRemaining() {
     return String(response.message);
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Failed to fetch time until next claim, consider reloading page.', false);
+    await setMessage('Failed to fetch time until next claim, consider reloading page.');
   }
   return '';
 }
@@ -146,7 +144,7 @@ export async function canClick() {
     return response?.canClick ?? false;
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Failed to determine if claim is available, consider reloading page.', false);
+    await setMessage('Failed to determine if claim is available, consider reloading page.');
   }
 }
 
