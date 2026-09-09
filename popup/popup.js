@@ -12,6 +12,13 @@ import {
 } from '../scripts/utils.js';
 
 void fetchFPTPlaceTab();
+(async () => {
+  const time = getCurrentTime();
+  if (time.isBeforeStart()) {
+    await setAlarm(true, getCurrentTime().to(8, 31).toMinutes() - time.toMinutes());
+    console.log('Set alarm for when day start');
+  }
+})();
 
 // current time
 const currentTime = document.querySelector('#current-time');

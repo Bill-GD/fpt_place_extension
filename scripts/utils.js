@@ -37,7 +37,19 @@ export function getCurrentTime() {
       this.hour = (this.hour + hour) % 24;
     },
     isOngoing() {
-      return ((hour >= 8 && minute >= 30) || hour >= 9) && hour <= 16;
+      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour <= 16;
+    },
+    isBeforeStart() {
+      return this.hour < 8 || (this.hour === 8 && this.minute < 30);
+    },
+    toMinutes() {
+      return this.minute + this.hour * 60 + (this.second > 0 ? 1 : 0);
+    },
+    to(hour = 0, minute = 0, second = 0) {
+      this.second = second % 60;
+      this.minute = minute % 60;
+      this.hour = hour % 24;
+      return this;
     },
     toString() {
       return `${padStart(this.hour)}:${padStart(this.minute)}:${padStart(this.second)}`;
@@ -145,14 +157,20 @@ export async function hasAlarm() {
   return !!alarm;
 }
 
-export async function setAlarm(log = true) {
-  const timeToNext = await fetchTimeRemaining();
-  const [minStr, secStr] = timeToNext.split(':');
-  let minute = Number(minStr) || 1;
-  if (Number(secStr) > 0) minute++;
+export async function setAlarm(log = true, override = 0) {
+  let minute = 1;
+
+  if (!override || override <= 0) {
+    const timeToNext = await fetchTimeRemaining();
+    if (timeToNext.length > 0) {
+      const [minStr, secStr] = timeToNext.split(':');
+      minute = Number(minStr) || 0;
+      if (Number(secStr) > 0) minute++;
+    }
+  }
 
   void chrome.alarms.create('autoClick', {
-    periodInMinutes: minute,
+    periodInMinutes: override > 0 ? override : minute,
     persistAcrossSessions: true,
   });
 
