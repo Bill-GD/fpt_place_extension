@@ -1,9 +1,10 @@
 import {
   calcNextTime,
-  DEFAULT_TIMESTAMPS,
+  canClick,
   fetchFPTPlaceTab,
+  fetchTimeRemaining,
   getCurrentTime,
-  isEnabled,
+  isEnabled, setAlarm,
   setMessage,
   setNextTime,
   toggleExtension,
@@ -11,6 +12,7 @@ import {
 } from '../scripts/utils.js';
 
 void fetchFPTPlaceTab();
+void fetchTimeRemaining();
 
 // current time
 const currentTime = document.querySelector('#current-time');
@@ -27,8 +29,11 @@ statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'Ended';
 void updateCollected();
 
 // next timestamp
-const { nextTime: nextTimeStr = DEFAULT_TIMESTAMPS[0] } = await chrome.storage.local.get('nextTime');
-setNextTime(nextTimeStr, false);
+const timeToNext = await fetchTimeRemaining();
+const [min, sec] = timeToNext.split(':');
+const baseTime = getCurrentTime();
+baseTime.add(0, Number(min), Number(sec));
+setNextTime(baseTime.toString());
 
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
@@ -70,6 +75,12 @@ forceClaimButton.addEventListener('click', async () => {
     return;
   }
 
+  if (!(await canClick())) {
+    const timeToNext = await fetchTimeRemaining();
+    await setMessage(`Please wait until next claim (in ${timeToNext}).`);
+    return;
+  }
+
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
@@ -88,4 +99,31 @@ forceClaimButton.addEventListener('click', async () => {
     console.error('Failed to send message to tab:', error);
     await setMessage('Could not force claim, consider reloading page.', false);
   }
+});
+
+// check alarm
+const checkAlarmButton = document.querySelector('#check-alarm-button');
+checkAlarmButton.addEventListener('click', async () => {
+  const alarm = await chrome.alarms.get('autoClick');
+  if (!alarm) {
+    void setMessage('No alarm set', false);
+  } else {
+    void setMessage(`Alarm set at: ${new Date(alarm.scheduledTime).toLocaleTimeString()}`, false);
+  }
+});
+
+// force set alarm
+const forceSetAlarmButton = document.querySelector('#set-alarm-button');
+forceSetAlarmButton.addEventListener('click', async () => {
+  const timeToNext = await fetchTimeRemaining();
+  if (timeToNext.length <= 0) {
+    await setMessage('Could not force set alarm, consider reloading page.', false);
+    return;
+  }
+
+  const [min, sec] = timeToNext.split(':');
+  let minute = Number(min);
+  if (Number(sec) > 0) minute++;
+  setAlarm(minute);
+  await setMessage(`Set alarm: ${minute}min.`, false);
 });

@@ -24,12 +24,12 @@ export function getCurrentTime() {
     minute,
     second,
     add(hour = 0, minute = 0, second = 0) {
-      this.second = this.second + second;
+      this.second += second;
       if (this.second > 60) {
         this.second %= 60;
         this.minute++;
       }
-      this.minute = this.minute + minute;
+      this.minute += minute;
       if (this.minute > 60) {
         this.minute %= 60;
         this.hour++;
@@ -37,10 +37,10 @@ export function getCurrentTime() {
       this.hour = (this.hour + hour) % 24;
     },
     started() {
-      return (hour >= 8 && minute >= 30) && hour <= 16;
+      return ((hour >= 8 && minute >= 30) || hour >= 9) && hour <= 16;
     },
     toString() {
-      return `${padStart(hour)}:${padStart(minute)}:${padStart(second)}`;
+      return `${padStart(this.hour)}:${padStart(this.minute)}:${padStart(this.second)}`;
     },
   };
 }
@@ -84,6 +84,25 @@ export async function updateCollected() {
   }
 }
 
+export async function fetchTimeRemaining() {
+  if (!getCurrentTime().started()) return '';
+
+  const tab = await fetchFPTPlaceTab();
+  if (!tab) return '';
+
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTimeRemaining' });
+    if (response?.message) {
+      await chrome.storage.local.set({ timeToNext: response.message });
+    }
+    return String(response.message);
+  } catch (error) {
+    console.error('Failed to send message to tab:', error);
+    await setMessage('Failed to fetch time until next claim, consider reloading page.', false);
+  }
+  return '';
+}
+
 export function setNextTime(time, save = true) {
   if (save) {
     void chrome.storage.local.set({ nextTime: time });
@@ -110,6 +129,33 @@ export function calcNextTime() {
 export async function isEnabled() {
   const { enabled = false } = await chrome.storage.local.get('enabled');
   return enabled;
+}
+
+export async function canClick() {
+  if (!getCurrentTime().started()) return false;
+
+  const tab = await fetchFPTPlaceTab();
+  if (!tab) return;
+
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'getTimeRemaining',
+      started: getCurrentTime().started(),
+    });
+
+    return response?.canClick ?? false;
+  } catch (error) {
+    console.error('Failed to send message to tab:', error);
+    await setMessage('Failed to determine if claim is available, consider reloading page.', false);
+  }
+}
+
+export function setAlarm(minute = 45, log = true) {
+  void chrome.alarms.create('autoClick', {
+    periodInMinutes: minute,
+    persistAcrossSessions: true,
+  });
+  if (log) console.log(`Reset ${minute} min periodic autoClick alarm`);
 }
 
 export async function toggleExtension() {

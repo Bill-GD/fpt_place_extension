@@ -1,4 +1,4 @@
-import { calcNextTime, fetchFPTPlaceTab, setMessage, updateCollected } from './utils.js';
+import { calcNextTime, fetchFPTPlaceTab, setAlarm, setMessage, updateCollected } from './utils.js';
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'autoClick') {
@@ -32,19 +32,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'resetAlarm') {
-    void chrome.alarms.create('autoClick', {
-      periodInMinutes: 45,
-    });
-    console.log('Reset 45 min periodic autoClick alarm');
+    setAlarm();
   }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.enabled) {
     if (changes.enabled.newValue) {
-      void chrome.alarms.create('autoClick', {
-        periodInMinutes: 45,
-      });
+      setAlarm(45, false);
       console.log('Extension enabled: created 45 min periodic autoClick alarm');
     } else {
       void chrome.alarms.clear('autoClick');
