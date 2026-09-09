@@ -37,7 +37,7 @@ export function getCurrentTime() {
       this.hour = (this.hour + hour) % 24;
     },
     isOngoing() {
-      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour <= 16;
+      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour < 16;
     },
     isBeforeStart() {
       return this.hour < 8 || (this.hour === 8 && this.minute < 30);
