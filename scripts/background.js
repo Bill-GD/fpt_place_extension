@@ -1,22 +1,16 @@
 import { calcNextTime, fetchFPTPlaceTab, setAlarm, setMessage, updateCollected } from './utils.js';
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== 'autoClick') {
-    return;
-  }
+  if (alarm.name !== 'autoClick') return;
 
   const { enabled } = await chrome.storage.local.get('enabled');
-  if (!enabled) {
-    return;
-  }
+  if (!enabled) return;
 
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'clickClaimButton',
-    });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'clickClaimButton' });
     if (response?.success === true) {
       await updateCollected();
       calcNextTime();

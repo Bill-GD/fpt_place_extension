@@ -4,7 +4,8 @@ import {
   fetchFPTPlaceTab,
   fetchTimeRemaining,
   getCurrentTime,
-  isEnabled, setAlarm,
+  isEnabled,
+  setAlarm,
   setMessage,
   setNextTime,
   toggleExtension,
@@ -12,7 +13,6 @@ import {
 } from '../scripts/utils.js';
 
 void fetchFPTPlaceTab();
-void fetchTimeRemaining();
 
 // current time
 const currentTime = document.querySelector('#current-time');
@@ -29,12 +29,38 @@ statusLabel.innerText = getCurrentTime().started() ? 'Started' : 'Ended';
 void updateCollected();
 
 // next timestamp
-const timeToNext = await fetchTimeRemaining();
-const [min, sec] = timeToNext.split(':');
-const baseTime = getCurrentTime();
-baseTime.add(0, Number(min), Number(sec));
-setNextTime(baseTime.toString());
+(async () => {
+  const timeToNext = await fetchTimeRemaining();
+  const [min, sec] = timeToNext.split(':');
+  const baseTime = getCurrentTime();
+  baseTime.add(0, Number(min), Number(sec));
+  setNextTime(baseTime.toString());
+})();
 
+// listen for storage changes (e.g. from background or content script)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.message) {
+    const messageEl = document.querySelector('#message');
+    if (messageEl) messageEl.innerText = changes.message.newValue;
+  }
+});
+
+// auto set alarm (especially when reloaded)
+(async () => {
+  const alarm = await chrome.alarms.get('autoClick');
+  if (alarm) return;
+
+  const timeToNext = await fetchTimeRemaining();
+  const [min, sec] = timeToNext.split(':');
+  let minute = Number(min);
+  if (Number(sec) > 0) minute++;
+  setTimeout(() => {
+    setAlarm(minute);
+    void setMessage(`Set alarm: ${minute}min.`);
+  }, 1000);
+})();
+
+// ===== button event listeners =====
 // toggle
 const toggleButton = document.querySelector('#toggle-button');
 
@@ -46,17 +72,8 @@ toggleButton.addEventListener('click', async () => {
   void toggleExtension();
 });
 
-// listen for storage changes (e.g. from background or content script)
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.message) {
-    const messageEl = document.querySelector('#message');
-    if (messageEl) messageEl.innerText = changes.message.newValue;
-  }
-});
-
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
-
 forceClaimButton.addEventListener('click', async () => {
   if (!(await isEnabled())) {
     await setMessage('Extension is disabled. Toggle ON to claim.');
@@ -78,11 +95,9 @@ forceClaimButton.addEventListener('click', async () => {
   if (!tab) return;
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'forceClaim',
-    });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'forceClaim' });
     if (response?.success === true) {
-      void updateCollected();
+      await updateCollected();
       calcNextTime();
     }
     if (response?.message) {

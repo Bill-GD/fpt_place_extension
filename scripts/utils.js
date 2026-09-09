@@ -45,43 +45,6 @@ export function getCurrentTime() {
   };
 }
 
-export async function setMessage(str) {
-  if (typeof document === 'undefined') return;
-
-  const messageEl = document.querySelector('#message');
-  if (messageEl) {
-    messageEl.innerText = str;
-  }
-  console.log(str);
-}
-
-export function setCollected(str) {
-  if (typeof document !== 'undefined') {
-    const collectedCountEl = document.querySelector('#collected-count');
-    if (collectedCountEl) {
-      collectedCountEl.innerText = str;
-    }
-  }
-}
-
-export async function updateCollected() {
-  const tab = await fetchFPTPlaceTab();
-  if (!tab) return;
-
-  try {
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'getCollected',
-      started: getCurrentTime().started(),
-    });
-    if (response?.message) {
-      setCollected(response.message);
-    }
-  } catch (error) {
-    console.error('Failed to send message to tab:', error);
-    await setMessage('Failed to fetch collected count, consider reloading page.');
-  }
-}
-
 export async function fetchTimeRemaining() {
   if (!getCurrentTime().started()) return '';
 
@@ -127,6 +90,43 @@ export function calcNextTime() {
 export async function isEnabled() {
   const { enabled = false } = await chrome.storage.local.get('enabled');
   return enabled;
+}
+
+export async function setMessage(str) {
+  if (typeof document === 'undefined') return;
+
+  const messageEl = document.querySelector('#message');
+  if (messageEl) {
+    messageEl.innerText = str;
+  }
+  console.log(str);
+}
+
+export function setCollected(str) {
+  if (typeof document !== 'undefined') {
+    const collectedCountEl = document.querySelector('#collected-count');
+    if (collectedCountEl) {
+      collectedCountEl.innerText = str;
+    }
+  }
+}
+
+export async function updateCollected() {
+  const tab = await fetchFPTPlaceTab();
+  if (!tab) return;
+
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'getCollected',
+      started: getCurrentTime().started(),
+    });
+    if (response?.collected) {
+      setCollected(response.collected);
+    }
+  } catch (error) {
+    console.error('Failed to send message to tab:', error);
+    await setMessage('Failed to fetch collected count, consider reloading page.');
+  }
 }
 
 export async function canClick() {
