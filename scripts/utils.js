@@ -94,12 +94,11 @@ export async function isEnabled() {
 
 export async function setMessage(str) {
   if (typeof document === 'undefined') return;
-
   const messageEl = document.querySelector('#message');
   if (messageEl) {
     messageEl.innerText = str;
   }
-  console.log(str);
+  console.log(`Message: ${str}`);
 }
 
 export function setCollected(str) {
@@ -172,7 +171,7 @@ export async function toggleExtension() {
 
 export async function fetchFPTPlaceTab() {
   const tabs = await chrome.tabs.query({
-    url: 'https://place.fpt.com/*',
+    url: 'https://place.fpt.com/',
   });
 
   if (tabs.length <= 0) {
@@ -180,5 +179,5 @@ export async function fetchFPTPlaceTab() {
     return null;
   }
 
-  return tabs[0];
+  return tabs.find((t) => t.active) || tabs.find((t) => !t.discarded) || tabs[0];
 }

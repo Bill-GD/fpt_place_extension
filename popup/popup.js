@@ -31,9 +31,9 @@ void updateCollected();
 // next timestamp
 (async () => {
   const timeToNext = await fetchTimeRemaining();
-  const [min, sec] = timeToNext.split(':');
+  const [minStr, secStr] = timeToNext.split(':');
   const baseTime = getCurrentTime();
-  baseTime.add(0, Number(min), Number(sec));
+  baseTime.add(0, Number(minStr), Number(secStr));
   setNextTime(baseTime.toString());
 })();
 
@@ -51,9 +51,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (alarm) return;
 
   const timeToNext = await fetchTimeRemaining();
-  const [min, sec] = timeToNext.split(':');
-  let minute = Number(min);
-  if (Number(sec) > 0) minute++;
+  const [minStr, secStr] = timeToNext.split(':');
+  let minute = Number(minStr);
+  if (Number(secStr) > 0) minute++;
   setTimeout(() => {
     setAlarm(minute);
     void setMessage(`Set alarm: ${minute}min.`);
