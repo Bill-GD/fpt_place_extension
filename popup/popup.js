@@ -66,18 +66,18 @@ const forceClaimButton = document.querySelector('#force-claim-button');
 
 forceClaimButton.addEventListener('click', async () => {
   if (!(await isEnabled())) {
-    await setMessage('Extension is disabled. Toggle ON to claim.');
+    await setMessage('Extension is disabled. Toggle ON to claim.', false);
     return;
   }
 
   if (!getCurrentTime().started()) {
-    await setMessage('Please wait until tomorrow.');
+    await setMessage('Please wait until tomorrow.', false);
     return;
   }
 
   if (!(await canClick())) {
     const timeToNext = await fetchTimeRemaining();
-    await setMessage(`Please wait until next claim (in ${timeToNext}).`);
+    await setMessage(`Please wait until next claim (in ${timeToNext}).`, false);
     return;
   }
 
