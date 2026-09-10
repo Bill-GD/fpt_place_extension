@@ -11,8 +11,9 @@ import {
   updateCollected,
 } from '../scripts/utils.js';
 
-void fetchFPTPlaceTab();
+const tab = await fetchFPTPlaceTab();
 
+// set alarm if opened before start time
 (async () => {
   const time = getCurrentTime();
   if (time.isBeforeStart()) {
@@ -20,19 +21,6 @@ void fetchFPTPlaceTab();
     console.log('Set alarm for when day start');
   }
 })();
-
-// current time
-const currentTime = document.querySelector('#current-time');
-currentTime.innerText = getCurrentTime().toString();
-setInterval(() => {
-  currentTime.innerText = getCurrentTime().toString();
-}, 1000);
-
-// status
-document.querySelector('#status').innerText = getCurrentTime().getStatus();
-
-// collected
-void updateCollected();
 
 // next timestamp
 (async () => {
@@ -48,6 +36,41 @@ void updateCollected();
   time.add(0, Number(minStr) || 0, Number(secStr) || 0);
   setNextTime(time.toString());
 })();
+
+// auto start on open
+(async () => {
+  if (!tab) return;
+
+  if (getCurrentTime().isOngoing() && await canClick()) {
+    await forceClaim();
+    await setMessage('Auto claimed (may or may not actually claimed)');
+    return;
+  }
+
+  if (getCurrentTime().isEnded()) {
+    await chrome.alarms.clear('autoClick');
+    return;
+  }
+
+  if (await hasAlarm()) return;
+
+  setTimeout(() => void setAlarm(false), 1000);
+})();
+
+// current time
+(() => {
+  const currentTime = document.querySelector('#current-time');
+  currentTime.innerText = getCurrentTime().toString();
+  setInterval(() => {
+    currentTime.innerText = getCurrentTime().toString();
+  }, 1000);
+})();
+
+// status
+document.querySelector('#status').innerText = getCurrentTime().getStatus();
+
+// collected
+void updateCollected();
 
 // listen for storage changes (e.g. from background or content script)
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -77,26 +100,14 @@ async function forceClaim() {
   }
 }
 
-// auto start on open
-(async () => {
-  if (getCurrentTime().isOngoing() && await canClick()) {
-    await forceClaim();
-    await setMessage('Auto claimed (may or may not actually claimed)');
-    return;
-  }
-
-  if (getCurrentTime().isEnded()) {
-    await chrome.alarms.clear('autoClick');
-    return;
-  }
-  if (!(await hasAlarm())) setTimeout(() => void setAlarm(false), 1000);
-})();
-
 // force claim
 const forceClaimButton = document.querySelector('#force-claim-button');
 forceClaimButton.addEventListener('click', async () => {
-  if (!getCurrentTime().isOngoing()) {
-    await setMessage('Please wait until tomorrow.');
+  if (!tab) return;
+
+  const time = getCurrentTime();
+  if (!time.isOngoing()) {
+    await setMessage(time.isBeforeStart() ? 'Please wait until 8:30' : 'Please wait until tomorrow.');
     return;
   }
 

@@ -76,7 +76,7 @@ export async function fetchTimeRemaining() {
     if (response?.success === true && response?.message) {
       return String(response.message);
     }
-    await setMessage(response?.message ?? 'Failed to fetch time until next claim');
+    await setMessage(response?.message ?? 'Failed to fetch cooldown time');
     return '';
   } catch (error) {
     console.error('Failed to send message to tab:', error);
@@ -85,10 +85,8 @@ export async function fetchTimeRemaining() {
   return '';
 }
 
-export function setNextTime(time, save = true) {
-  if (save) {
-    void chrome.storage.local.set({ nextTime: time });
-  }
+export function setNextTime(time) {
+  void chrome.storage.local.set({ nextTime: time });
   if (typeof document !== 'undefined') {
     const nextTimeEl = document.querySelector('#next-time');
     if (nextTimeEl) {
@@ -128,11 +126,14 @@ export function setCollected(str) {
       collectedCountEl.innerText = str;
     }
   }
+  void chrome.storage.local.set({ collected: str });
 }
 
 export async function updateCollected() {
   const tab = await fetchFPTPlaceTab();
-  if (!tab) return;
+  if (!tab) {
+    return setCollected((await chrome.storage.local.get('collected'))?.collected ?? 'N/A');
+  }
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, {
@@ -199,7 +200,7 @@ export async function fetchFPTPlaceTab() {
   if (tabs.length <= 0) {
     const url = 'https://place.fpt.com';
     await setMessage(
-      `Please open <span id="open-fpt-place" data-href="${url}" role="link">place.fpt.com</span> (the home page)`,
+      `Please open <span id="open-fpt-place" data-href="${url}" role="link">place.fpt.com</span><br>(won't run unless opened)`,
       true,
     );
 
