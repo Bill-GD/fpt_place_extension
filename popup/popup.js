@@ -24,6 +24,12 @@ const tab = await fetchFPTPlaceTab();
 
 // next timestamp
 (async () => {
+  const { nextTime } = await chrome.storage.local.get('nextTime');
+  if (nextTime) {
+    setNextTime(nextTime);
+    return;
+  }
+
   const timeToNext = await fetchTimeRemaining();
   if (timeToNext.length <= 0 || !timeToNext.includes(':')) {
     const { nextTime = 'N/A' } = await chrome.storage.local.get('nextTime');
