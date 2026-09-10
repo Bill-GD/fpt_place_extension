@@ -36,14 +36,19 @@ export function getCurrentTime() {
       }
       this.hour = (this.hour + hour) % 24;
     },
-    isOngoing() {
-      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour < 16;
-    },
     isBeforeStart() {
       return this.hour < 8 || (this.hour === 8 && this.minute < 30);
     },
+    isOngoing() {
+      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour < 16;
+    },
     isEnded() {
       return this.hour >= 16;
+    },
+    getStatus() {
+      if (this.isBeforeStart()) return 'Starting Soon';
+      if (this.isOngoing()) return 'Ongoing';
+      if (this.isEnded()) return 'Ended';
     },
     toMinutes() {
       return this.minute + this.hour * 60 + (this.second > 0 ? 1 : 0);
@@ -69,7 +74,6 @@ export async function fetchTimeRemaining() {
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTimeRemaining' });
     if (response?.success === true && response?.message) {
-      await chrome.storage.local.set({ timeToNext: response.message });
       return String(response.message);
     }
     await setMessage(response?.message ?? 'Failed to fetch time until next claim');
@@ -104,11 +108,15 @@ export function calcNextTime() {
   setNextTime(currentTime.isOngoing() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
 }
 
-export async function setMessage(str) {
+export async function setMessage(str, isHTML = false) {
   if (typeof document === 'undefined') return;
   const messageEl = document.querySelector('#message');
   if (messageEl) {
-    messageEl.innerText = str;
+    if (isHTML) {
+      messageEl.innerHTML = str;
+    } else {
+      messageEl.innerText = str;
+    }
   }
   console.log(`Message: ${str}`);
 }
@@ -189,7 +197,28 @@ export async function fetchFPTPlaceTab() {
   });
 
   if (tabs.length <= 0) {
-    await setMessage('Please open "place.fpt.com" (the home page)');
+    const url = 'https://place.fpt.com';
+    await setMessage(
+      `Please open <span id="open-fpt-place" data-href="${url}" role="link">place.fpt.com</span> (the home page)`,
+      true,
+    );
+
+    const linkEl = document.querySelector('#open-fpt-place');
+    if (linkEl) {
+      const openTab = (ev) => {
+        ev.preventDefault();
+        const targetUrl = linkEl.dataset.href || '';
+        if (targetUrl && targetUrl.startsWith('http')) {
+          void chrome.tabs.create({ url: targetUrl });
+        }
+      };
+      linkEl.addEventListener('click', openTab);
+      linkEl.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          openTab(ev);
+        }
+      });
+    }
     return null;
   }
 

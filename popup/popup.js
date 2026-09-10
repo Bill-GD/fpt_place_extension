@@ -12,6 +12,7 @@ import {
 } from '../scripts/utils.js';
 
 void fetchFPTPlaceTab();
+
 (async () => {
   const time = getCurrentTime();
   if (time.isBeforeStart()) {
@@ -28,8 +29,7 @@ setInterval(() => {
 }, 1000);
 
 // status
-const statusLabel = document.querySelector('#status');
-statusLabel.innerText = getCurrentTime().isOngoing() ? 'Ongoing' : 'Ended';
+document.querySelector('#status').innerText = getCurrentTime().getStatus();
 
 // collected
 void updateCollected();
@@ -37,8 +37,9 @@ void updateCollected();
 // next timestamp
 (async () => {
   const timeToNext = await fetchTimeRemaining();
-  if (timeToNext.length <= 0) {
-    setNextTime('N/A');
+  if (timeToNext.length <= 0 || !timeToNext.includes(':')) {
+    const { nextTime = 'N/A' } = await chrome.storage.local.get('nextTime');
+    setNextTime(nextTime);
     return;
   }
 
