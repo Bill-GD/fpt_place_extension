@@ -1,6 +1,6 @@
 import {
   calcNextTime,
-  canClick,
+  canClaim,
   fetchFPTPlaceTab,
   fetchTimeRemaining,
   getCurrentTime,
@@ -12,6 +12,21 @@ import {
 } from '../scripts/utils.js';
 
 const tab = await fetchFPTPlaceTab();
+
+// current time
+(() => {
+  const currentTime = document.querySelector('#current-time');
+  currentTime.innerText = getCurrentTime().toString();
+  setInterval(() => {
+    currentTime.innerText = getCurrentTime().toString();
+  }, 1000);
+})();
+
+// status
+document.querySelector('#status').innerText = getCurrentTime().getStatus();
+
+// collected
+void updateCollected();
 
 // set alarm if opened before start time
 (async () => {
@@ -47,7 +62,7 @@ const tab = await fetchFPTPlaceTab();
 (async () => {
   if (!tab) return;
 
-  if (getCurrentTime().isOngoing() && await canClick()) {
+  if (getCurrentTime().isOngoing() && await canClaim()) {
     await forceClaim();
     await setMessage('Auto claimed (may or may not actually claimed)');
     return;
@@ -58,25 +73,11 @@ const tab = await fetchFPTPlaceTab();
     return;
   }
 
-  if (await hasAlarm()) return;
+  const { collected = '' } = await chrome.storage.local.get('collected');
+  if ((collected && collected === '10/10') || await hasAlarm()) return;
 
   setTimeout(() => void setAlarm(false), 1000);
 })();
-
-// current time
-(() => {
-  const currentTime = document.querySelector('#current-time');
-  currentTime.innerText = getCurrentTime().toString();
-  setInterval(() => {
-    currentTime.innerText = getCurrentTime().toString();
-  }, 1000);
-})();
-
-// status
-document.querySelector('#status').innerText = getCurrentTime().getStatus();
-
-// collected
-void updateCollected();
 
 // listen for storage changes (e.g. from background or content script)
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -117,7 +118,7 @@ forceClaimButton.addEventListener('click', async () => {
     return;
   }
 
-  if (!(await canClick())) {
+  if (!(await canClaim())) {
     const timeToNext = await fetchTimeRemaining();
     await setMessage(`Please wait until next claim (in ${timeToNext}).`);
     return;

@@ -149,7 +149,7 @@ export async function updateCollected() {
   }
 }
 
-export async function canClick() {
+export async function canClaim() {
   if (!getCurrentTime().isOngoing()) return false;
 
   const tab = await fetchFPTPlaceTab();
