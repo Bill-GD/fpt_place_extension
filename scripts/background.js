@@ -52,7 +52,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'clickClaimButton' });
     if (response?.success === true) {
       await updateCollected();
-      calcNextTime();
+      await calcNextTime();
     } else if (response?.remainingTime) {
       const [minStr, secStr] = response.remainingTime.split(':');
       const min = Number(minStr) || 0, sec = Number(secStr) || 0;

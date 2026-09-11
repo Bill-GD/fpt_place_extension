@@ -1,74 +1,57 @@
 import {
   calcNextTime,
   canClaim,
+  fetchCooldownTime,
   fetchFPTPlaceTab,
-  fetchTimeRemaining,
-  getCurrentTime,
   hasAlarm,
   setAlarm,
   setMessage,
-  setNextTime,
   updateCollected,
 } from '../scripts/utils.js';
+import { Time } from '../types/Time.js';
 
 const tab = await fetchFPTPlaceTab();
 
 // current time
 (() => {
   const currentTime = document.querySelector('#current-time');
-  currentTime.innerText = getCurrentTime().toString();
+  currentTime.innerText = Time.now().toString();
   setInterval(() => {
-    currentTime.innerText = getCurrentTime().toString();
+    currentTime.innerText = Time.now().toString();
   }, 1000);
 })();
 
 // status
-document.querySelector('#status').innerText = getCurrentTime().getStatus();
+document.querySelector('#status').innerText = Time.now().getStatus();
 
 // collected
 void updateCollected();
 
 // set alarm if opened before start time
 (async () => {
-  const time = getCurrentTime();
+  const time = Time.now();
   if (time.isBeforeStart()) {
-    await setAlarm(true, getCurrentTime().to(8, 31).toMinutes() - time.toMinutes());
+    await setAlarm(true, Time.now().to(8, 31).toMinutes() - time.toMinutes());
     console.log('Set alarm for when day start');
   }
 })();
 
 // next timestamp
-(async () => {
-  const { nextTime } = await chrome.storage.local.get('nextTime');
-  if (nextTime) {
-    setNextTime(nextTime);
-    return;
-  }
-
-  const timeToNext = await fetchTimeRemaining();
-  if (timeToNext.length <= 0 || !timeToNext.includes(':')) {
-    const { nextTime = 'N/A' } = await chrome.storage.local.get('nextTime');
-    setNextTime(nextTime);
-    return;
-  }
-
-  const [minStr, secStr] = timeToNext.split(':');
-  const time = getCurrentTime();
-  time.add(0, Number(minStr) || 0, Number(secStr) || 0);
-  setNextTime(time.toString());
+(() => {
+  void calcNextTime(true);
 })();
 
 // auto start on open
 (async () => {
   if (!tab) return;
 
-  if (getCurrentTime().isOngoing() && await canClaim()) {
-    await forceClaim();
-    await setMessage('Auto claimed (may or may not actually claimed)');
+  if (Time.now().isOngoing() && await canClaim()) {
+    const claimed = await forceClaim();
+    if (claimed) await setMessage('Auto claimed');
     return;
   }
 
-  if (getCurrentTime().isEnded()) {
+  if (Time.now().isEnded()) {
     await chrome.alarms.clear('autoClick');
     return;
   }
@@ -96,14 +79,16 @@ async function forceClaim() {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'forceClaim' });
     if (response?.success === true) {
       await updateCollected();
-      calcNextTime();
+      await calcNextTime();
     }
     if (response?.message) {
       await setMessage(response.message);
     }
+    return response?.success ?? false;
   } catch (error) {
     console.error('Failed to send message to tab:', error);
     await setMessage('Could not force claim, consider reloading page.');
+    return false;
   }
 }
 
@@ -112,14 +97,14 @@ const forceClaimButton = document.querySelector('#force-claim-button');
 forceClaimButton.addEventListener('click', async () => {
   if (!tab) return;
 
-  const time = getCurrentTime();
+  const time = Time.now();
   if (!time.isOngoing()) {
     await setMessage(time.isBeforeStart() ? 'Please wait until 8:30' : 'Please wait until tomorrow.');
     return;
   }
 
   if (!(await canClaim())) {
-    const timeToNext = await fetchTimeRemaining();
+    const timeToNext = await fetchCooldownTime();
     await setMessage(`Please wait until next claim (in ${timeToNext}).`);
     return;
   }
@@ -143,7 +128,7 @@ checkAlarmButton.addEventListener('click', async () => {
 // force set alarm
 const forceSetAlarmButton = document.querySelector('#set-alarm-button');
 forceSetAlarmButton.addEventListener('click', async () => {
-  const timeToNext = await fetchTimeRemaining();
+  const timeToNext = await fetchCooldownTime();
   if (timeToNext.length <= 0) {
     await setMessage('Could not force set alarm, consider reloading page.');
     return;

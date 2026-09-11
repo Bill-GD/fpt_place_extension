@@ -1,3 +1,5 @@
+import { Time } from '../types/Time.js';
+
 export const DEFAULT_TIMESTAMPS = [
   '08:30:00',
   '09:15:00',
@@ -12,67 +14,14 @@ export const DEFAULT_TIMESTAMPS = [
   '16:00:00',
 ];
 
-function padStart(value) {
-  return String(value).padStart(2, '0');
-}
-
-export function getCurrentTime() {
-  const date = new Date();
-  const hour = date.getHours(), minute = date.getMinutes(), second = date.getSeconds();
-  return {
-    hour,
-    minute,
-    second,
-    add(hour = 0, minute = 0, second = 0) {
-      this.second += second;
-      if (this.second > 60) {
-        this.second %= 60;
-        this.minute++;
-      }
-      this.minute += minute;
-      if (this.minute > 60) {
-        this.minute %= 60;
-        this.hour++;
-      }
-      this.hour = (this.hour + hour) % 24;
-    },
-    isBeforeStart() {
-      return this.hour < 8 || (this.hour === 8 && this.minute < 30);
-    },
-    isOngoing() {
-      return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour < 16;
-    },
-    isEnded() {
-      return this.hour >= 16;
-    },
-    getStatus() {
-      if (this.isBeforeStart()) return 'Starting Soon';
-      if (this.isOngoing()) return 'Ongoing';
-      if (this.isEnded()) return 'Ended';
-    },
-    toMinutes() {
-      return this.minute + this.hour * 60 + (this.second > 0 ? 1 : 0);
-    },
-    to(hour = 0, minute = 0, second = 0) {
-      this.second = second % 60;
-      this.minute = minute % 60;
-      this.hour = hour % 24;
-      return this;
-    },
-    toString() {
-      return `${padStart(this.hour)}:${padStart(this.minute)}:${padStart(this.second)}`;
-    },
-  };
-}
-
-export async function fetchTimeRemaining() {
-  if (!getCurrentTime().isOngoing()) return '';
+export async function fetchCooldownTime() {
+  if (!Time.now().isOngoing()) return '';
 
   const tab = await fetchFPTPlaceTab();
   if (!tab) return '';
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTimeRemaining' });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCooldownTime' });
     if (response?.success === true && response?.message) {
       return String(response.message);
     }
@@ -95,14 +44,33 @@ export function setNextTime(time) {
   }
 }
 
-export function calcNextTime() {
-  const currentTime = getCurrentTime();
+export async function calcNextTime(fetchCooldown = false) {
+  const currentTime = Time.now();
   if (!currentTime.isOngoing()) {
     setNextTime(DEFAULT_TIMESTAMPS[0]);
     return;
   }
 
-  currentTime.add(0, 45);
+  const tab = await fetchFPTPlaceTab();
+  if (!tab || !tab.active || tab.discarded) {
+    const { nextTime = '' } = await chrome.storage.local.get('nextTime');
+    if (nextTime.includes(':')) setNextTime(nextTime);
+    return;
+  }
+
+  if (fetchCooldown) {
+    const cooldown = await fetchCooldownTime();
+    if (cooldown.length <= 0 || !cooldown.includes(':')) {
+      const { nextTime = 'N/A' } = await chrome.storage.local.get('nextTime');
+      setNextTime(nextTime);
+      return;
+    }
+
+    const [minStr, secStr] = cooldown.split(':');
+    currentTime.add(0, Number(minStr) || 0, Number(secStr) || 0);
+  } else {
+    currentTime.add(0, 45);
+  }
   setNextTime(currentTime.isOngoing() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
 }
 
@@ -138,7 +106,7 @@ export async function updateCollected() {
   try {
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'getCollected',
-      isOngoing: getCurrentTime().isOngoing(),
+      isOngoing: Time.now().isOngoing(),
     });
     if (response?.collected) {
       setCollected(response.collected);
@@ -150,7 +118,7 @@ export async function updateCollected() {
 }
 
 export async function canClaim() {
-  if (!getCurrentTime().isOngoing()) return false;
+  if (!Time.now().isOngoing()) return false;
 
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
@@ -170,10 +138,10 @@ export async function hasAlarm() {
 }
 
 export async function setAlarm(log = true, override = 0) {
-  let minute = 1;
+  let minute = 45;
 
   if (!override || override <= 0) {
-    const timeToNext = await fetchTimeRemaining();
+    const timeToNext = await fetchCooldownTime();
     if (timeToNext.length > 0) {
       const [minStr, secStr] = timeToNext.split(':');
       minute = Number(minStr) || 0;
