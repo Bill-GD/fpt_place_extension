@@ -1,3 +1,5 @@
+import Constants from '../scripts/constants.js';
+
 export class Time {
   hour = 0;
   minute = 0;
@@ -40,16 +42,33 @@ export class Time {
     }
   }
 
+  compare(other) {
+    if (!(other instanceof Time)) return null;
+
+    if (this.hour !== other.hour) return this.hour < other.hour ? -1 : 1;
+    if (this.minute !== other.minute) return this.minute < other.minute ? -1 : 1;
+    if (this.second !== other.second) return this.second < other.second ? -1 : 1;
+
+    return 0;
+  }
+
   isBeforeStart() {
-    return this.hour < 8 || (this.hour === 8 && this.minute < 30);
+    const { START_HOUR, START_MINUTE, START_SECOND } = Constants;
+    return this.compare(new Time(START_HOUR, START_MINUTE, START_SECOND)) < 0;
   }
 
   isOngoing() {
-    return ((this.hour >= 8 && this.minute >= 30) || this.hour >= 9) && this.hour < 16;
+    const {
+      START_HOUR, START_MINUTE, START_SECOND,
+      END_HOUR, END_MINUTE, END_SECOND,
+    } = Constants;
+    return this.compare(new Time(START_HOUR, START_MINUTE, START_SECOND)) >= 0
+           && this.compare(new Time(END_HOUR, END_MINUTE, END_SECOND)) < 0;
   }
 
   isEnded() {
-    return this.hour >= 16;
+    const { END_HOUR, END_MINUTE, END_SECOND } = Constants;
+    return this.compare(new Time(END_HOUR, END_MINUTE, END_SECOND)) >= 0;
   }
 
   getStatus() {
@@ -71,6 +90,11 @@ export class Time {
 
   toString() {
     return `${padStart(this.hour)}:${padStart(this.minute)}:${padStart(this.second)}`;
+  }
+
+  static getStart() {
+    const { START_HOUR, START_MINUTE, START_SECOND } = Constants;
+    return new Time(START_HOUR, START_MINUTE, START_SECOND);
   }
 
   static now() {

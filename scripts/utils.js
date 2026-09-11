@@ -1,18 +1,5 @@
 import { Time } from '../types/Time.js';
-
-export const DEFAULT_TIMESTAMPS = [
-  '08:30:00',
-  '09:15:00',
-  '10:00:00',
-  '10:45:00',
-  '11:30:00',
-  '12:15:00',
-  '13:00:00',
-  '13:45:00',
-  '14:30:00',
-  '15:15:00',
-  '16:00:00',
-];
+import Constants from './constants.js';
 
 export async function fetchCooldownTime() {
   if (!Time.now().isOngoing()) return '';
@@ -47,7 +34,7 @@ export function setNextTime(time) {
 export async function calcNextTime(fetchCooldown = false) {
   const currentTime = Time.now();
   if (!currentTime.isOngoing()) {
-    setNextTime(DEFAULT_TIMESTAMPS[0]);
+    setNextTime(Time.getStart().toString());
     return;
   }
 
@@ -69,9 +56,9 @@ export async function calcNextTime(fetchCooldown = false) {
     const [minStr, secStr] = cooldown.split(':');
     currentTime.add(0, Number(minStr) || 0, Number(secStr) || 0);
   } else {
-    currentTime.add(0, 45);
+    currentTime.add(0, Constants.MAX_COOLDOWN_MIN);
   }
-  setNextTime(currentTime.isOngoing() ? currentTime.toString() : DEFAULT_TIMESTAMPS[0]);
+  setNextTime(currentTime.isOngoing() ? currentTime.toString() : Time.getStart().toString());
 }
 
 export async function setMessage(str, isHTML = false) {
@@ -137,10 +124,16 @@ export async function canClaim() {
 }
 
 export async function updateMaxCountAndLastClaim() {
-  const time = Time.now();
+  let time = Time.now();
+  if (time.isEnded()) return;
+  if (time.isBeforeStart()) {
+    const { START_HOUR, START_MINUTE, START_SECOND } = Constants;
+    time = time.to(START_HOUR, START_MINUTE, START_SECOND);
+  }
+
   const collected = Number((await getCollected() ?? '0/10').split('/')[0]);
 
-  let minute = 45;
+  let minute = Constants.MAX_COOLDOWN_MIN;
   const cooldownTime = await fetchCooldownTime();
   if (cooldownTime.length > 0) {
     const [minStr, secStr] = cooldownTime.split(':');
@@ -152,10 +145,10 @@ export async function updateMaxCountAndLastClaim() {
   let canCollectCount = 1;
 
   while (time.isOngoing()) {
-    time.add(0, 45);
+    time.add(0, Constants.MAX_COOLDOWN_MIN);
     if (time.isOngoing()) canCollectCount++;
   }
-  if (time.isEnded()) time.subtract(0, 45);
+  if (time.isEnded()) time.subtract(0, Constants.MAX_COOLDOWN_MIN);
 
   const maxToday = Math.min(collected + canCollectCount, 10);
 
@@ -178,7 +171,7 @@ export async function hasAlarm() {
 }
 
 export async function setAlarm(log = true, override = 0) {
-  let minute = 45;
+  let minute = Constants.MAX_COOLDOWN_MIN;
 
   if (!override || override <= 0) {
     const cooldownTime = await fetchCooldownTime();

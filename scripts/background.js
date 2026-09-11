@@ -3,9 +3,6 @@ import { calcNextTime, fetchFPTPlaceTab, setAlarm, setMessage, updateCollected }
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'autoClick') return;
 
-  const { enabled } = await chrome.storage.local.get('enabled');
-  if (!enabled) return;
-
   const tab = await fetchFPTPlaceTab();
   if (!tab) return;
 
