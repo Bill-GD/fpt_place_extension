@@ -23,6 +23,23 @@ export class Time {
     this.hour = (this.hour + hour) % 24;
   }
 
+  subtract(hour = 0, minute = 0, second = 0) {
+    this.second -= second;
+    if (this.second < 0) {
+      this.second += 60;
+      this.minute--;
+    }
+    this.minute -= minute;
+    if (this.minute < 0) {
+      this.minute += 60;
+      this.hour--;
+    }
+    this.hour -= hour;
+    if (this.hour < 0) {
+      this.hour += 24;
+    }
+  }
+
   isBeforeStart() {
     return this.hour < 8 || (this.hour === 8 && this.minute < 30);
   }

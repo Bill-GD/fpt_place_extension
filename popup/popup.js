@@ -7,6 +7,7 @@ import {
   setAlarm,
   setMessage,
   updateCollected,
+  updateMaxCountAndLastClaim,
 } from '../scripts/utils.js';
 import { Time } from '../types/Time.js';
 
@@ -26,6 +27,7 @@ document.querySelector('#status').innerText = Time.now().getStatus();
 
 // collected
 void updateCollected();
+void updateMaxCountAndLastClaim();
 
 // set alarm if opened before start time
 (async () => {

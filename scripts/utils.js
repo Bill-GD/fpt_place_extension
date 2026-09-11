@@ -97,10 +97,10 @@ export function setCollected(str) {
   void chrome.storage.local.set({ collected: str });
 }
 
-export async function updateCollected() {
+async function getCollected() {
   const tab = await fetchFPTPlaceTab();
   if (!tab || tab.discarded) {
-    return setCollected((await chrome.storage.local.get('collected'))?.collected ?? 'N/A');
+    return (await chrome.storage.local.get('collected'))?.collected ?? null;
   }
 
   try {
@@ -108,13 +108,17 @@ export async function updateCollected() {
       action: 'getCollected',
       isOngoing: Time.now().isOngoing(),
     });
-    if (response?.collected) {
-      setCollected(response.collected);
-    }
+    return response?.collected ?? null;
   } catch (error) {
     console.error('Failed to send message to tab:', error);
     await setMessage('Failed to fetch collected count, consider reloading page.');
   }
+  return null;
+}
+
+export async function updateCollected() {
+  const collected = await getCollected();
+  if (collected) setCollected(collected);
 }
 
 export async function canClaim() {
@@ -132,6 +136,45 @@ export async function canClaim() {
   }
 }
 
+export async function updateMaxCountAndLastClaim() {
+  const time = Time.now();
+  const collected = Number((await getCollected() ?? '0/10').split('/')[0]) + 1;
+
+  let minute = 45;
+  const cooldownTime = await fetchCooldownTime();
+  console.log(cooldownTime);
+  if (cooldownTime.length > 0) {
+    const [minStr, secStr] = cooldownTime.split(':');
+    minute = Number(minStr) || 0;
+    if (Number(secStr) > 0) minute++;
+  }
+  console.log(minute);
+  time.add(0, minute);
+
+  let canCollectCount = 1;
+
+  while (time.isOngoing()) {
+    time.add(0, 45);
+    console.log(time.toString());
+    if (time.isOngoing()) canCollectCount++;
+  }
+  if (time.isEnded()) time.subtract(0, 45);
+
+  const maxToday = Math.min(collected + canCollectCount, 10);
+
+  if (typeof document !== 'undefined') {
+    const maxCountEl = document.querySelector('#max-count-today');
+    if (maxCountEl) {
+      maxCountEl.innerText = `${maxToday}/10`;
+    }
+
+    const lastClaimTimeEl = document.querySelector('#last-claim-time');
+    if (lastClaimTimeEl) {
+      lastClaimTimeEl.innerText = `~${time.toString()}`;
+    }
+  }
+}
+
 export async function hasAlarm() {
   const alarm = await chrome.alarms.get('autoClick');
   return !!alarm;
@@ -141,9 +184,9 @@ export async function setAlarm(log = true, override = 0) {
   let minute = 45;
 
   if (!override || override <= 0) {
-    const timeToNext = await fetchCooldownTime();
-    if (timeToNext.length > 0) {
-      const [minStr, secStr] = timeToNext.split(':');
+    const cooldownTime = await fetchCooldownTime();
+    if (cooldownTime.length > 0) {
+      const [minStr, secStr] = cooldownTime.split(':');
       minute = Number(minStr) || 0;
       if (Number(secStr) > 0) minute++;
     }
