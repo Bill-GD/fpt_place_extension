@@ -29,7 +29,7 @@ export async function fetchCooldownTime() {
     return '';
   } catch (error) {
     console.error('Failed to send message to tab:', error);
-    await setMessage('Failed to fetch time until next claim, consider reloading page.');
+    await setMessage('Failed to fetch cooldown time, consider reloading page.');
   }
   return '';
 }
@@ -99,7 +99,7 @@ export function setCollected(str) {
 
 export async function updateCollected() {
   const tab = await fetchFPTPlaceTab();
-  if (!tab) {
+  if (!tab || tab.discarded) {
     return setCollected((await chrome.storage.local.get('collected'))?.collected ?? 'N/A');
   }
 
@@ -124,8 +124,8 @@ export async function canClaim() {
   if (!tab) return;
 
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'canClick' });
-    return response?.canClick ?? false;
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'canClaim' });
+    return response?.canClaim ?? false;
   } catch (error) {
     console.error('Failed to send message to tab:', error);
     await setMessage('Failed to determine if claim is available, consider reloading page.');
@@ -161,14 +161,12 @@ export async function setAlarm(log = true, override = 0) {
 }
 
 export async function fetchFPTPlaceTab() {
-  const tabs = await chrome.tabs.query({
-    url: 'https://place.fpt.com/',
-  });
+  const url = 'https://place.fpt.com/';
+  const tabs = await chrome.tabs.query({ url });
 
   if (tabs.length <= 0) {
-    const url = 'https://place.fpt.com';
     await setMessage(
-      `Please open <span id="open-fpt-place" data-href="${url}" role="link">place.fpt.com</span><br>(won't run unless opened)`,
+      `Please open <span id="open-fpt-place" role="link">place.fpt.com</span><br>(won't run unless opened)`,
       true,
     );
 
@@ -176,10 +174,7 @@ export async function fetchFPTPlaceTab() {
     if (linkEl) {
       const openTab = (ev) => {
         ev.preventDefault();
-        const targetUrl = linkEl.dataset.href || '';
-        if (targetUrl && targetUrl.startsWith('http')) {
-          void chrome.tabs.create({ url: targetUrl });
-        }
+        void chrome.tabs.create({ url });
       };
       linkEl.addEventListener('click', openTab);
       linkEl.addEventListener('keydown', (ev) => {

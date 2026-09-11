@@ -1,4 +1,4 @@
-const events = ['clickClaimButton', 'forceClaim', 'getCollected', 'getCooldownTime', 'canClick'];
+const events = ['clickClaimButton', 'forceClaim', 'getCollected', 'getCooldownTime', 'canClaim'];
 
 function findClaimButton() {
   return [...document.querySelectorAll('button')].find((el) => {
@@ -95,9 +95,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       return;
     }
-    case 'canClick': {
+    case 'canClaim': {
       const button = findClaimButton();
-      sendResponse({ success: true, canClick: isButtonReady(button) });
+      sendResponse({ success: true, canClaim: isButtonReady(button) });
       return;
     }
     case 'getCooldownTime': {
