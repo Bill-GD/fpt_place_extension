@@ -18,7 +18,7 @@ export async function fetchCooldownTime() {
   if (!Time.now().isOngoing()) return '';
 
   const tab = await fetchFPTPlaceTab();
-  if (!tab) return '';
+  if (!tab || tab.discarded) return '';
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCooldownTime' });

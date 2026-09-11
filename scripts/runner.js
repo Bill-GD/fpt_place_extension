@@ -114,7 +114,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
     default: {
-      handleClaim(message.action === 'forceClaim').then(sendResponse);
+      handleClaim(message.action === 'forceClaim').then(async (res) => {
+        await chrome.runtime.sendMessage({ action: 'updateNextTime' });
+        sendResponse(res);
+      });
       return true;
     }
   }

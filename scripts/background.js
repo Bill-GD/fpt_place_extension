@@ -79,8 +79,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === 'resetAlarm') {
-    setTimeout(() => setAlarm(), 1000);
+  switch (message.action) {
+    case 'resetAlarm':
+      setTimeout(() => setAlarm(), 1000);
+      return;
+    case 'updateNextTime':
+      void calcNextTime();
+      return;
   }
 });
 
