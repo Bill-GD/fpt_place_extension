@@ -138,24 +138,21 @@ export async function canClaim() {
 
 export async function updateMaxCountAndLastClaim() {
   const time = Time.now();
-  const collected = Number((await getCollected() ?? '0/10').split('/')[0]) + 1;
+  const collected = Number((await getCollected() ?? '0/10').split('/')[0]);
 
   let minute = 45;
   const cooldownTime = await fetchCooldownTime();
-  console.log(cooldownTime);
   if (cooldownTime.length > 0) {
     const [minStr, secStr] = cooldownTime.split(':');
     minute = Number(minStr) || 0;
     if (Number(secStr) > 0) minute++;
   }
-  console.log(minute);
   time.add(0, minute);
 
   let canCollectCount = 1;
 
   while (time.isOngoing()) {
     time.add(0, 45);
-    console.log(time.toString());
     if (time.isOngoing()) canCollectCount++;
   }
   if (time.isEnded()) time.subtract(0, 45);
